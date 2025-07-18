@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Pivot Table Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+            min-height: 100vh;
+            color: #374151;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header p {
+            color: #6b7280;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .control-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-button {
+            background: none;
+            border: 1px solid #d1d5db;
+            color: #2563eb;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .add-button:hover:not(:disabled) {
+            background: #eff6ff;
+            border-color: #2563eb;
+        }
+
+        .add-button:disabled {
+            color: #9ca3af;
+            cursor: not-allowed;
+            border-color: #e5e7eb;
+        }
+
+        .field-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .field-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .field-item.row {
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+        }
+
+        .field-item.col {
+            background: #dcfce7;
+            border: 1px solid #86efac;
+        }
+
+        .field-item.measure {
+            background: #f3e8ff;
+            border: 1px solid #c084fc;
+        }
+
+        .field-index {
+            font-size: 12px;
+            font-weight: 500;
+            color: #374151;
+            min-width: 16px;
+            text-align: center;
+            background: rgba(255,255,255,0.7);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .field-item.row .field-index {
+            color: #2563eb;
+        }
+
+        .field-item.col .field-index {
+            color: #16a34a;
+        }
+
+        .field-item.measure .field-index {
+            color: #9333ea;
+        }
+
+        .field-select {
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            padding: 0;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .remove-button {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 2px;
+            transition: color 0.2s;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .remove-button:hover {
+            color: #dc2626;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .stratify-group {
+            margin-bottom: 0;
+        }
+
+        .stratify-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .stratify-select {
+            width: 192px;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .stratify-select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .pivot-table {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f9fafb;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th.column-header {
+            text-align: center;
+        }
+
+        .column-header-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .column-header-item {
+            font-size: 12px;
+        }
+
+        td {
+            padding: 12px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .row-header {
+            font-weight: 500;
+            color: #111827;
+            background: #f9fafb;
+            border-right: 1px solid #e5e7eb;
+        }
+
+        .data-cell {
+            text-align: center;
+        }
+
+        .data-cell:hover {
+            background: #f9fafb;
+        }
+
+        .stratify-item {
+            background: #f3f4f6;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+
+        .stratify-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stratify-header {
+            font-weight: 500;
+            color: #4b5563;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .measure-line {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .measure-item {
+            font-size: 12px;
+        }
+
+        .measure-label {
+            color: #6b7280;
+        }
+
+        .measure-value {
+            margin-left: 4px;
+            font-weight: 500;
+        }
+
+        .summary {
+            margin-top: 24px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .summary h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            font-size: 14px;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .summary-label {
+            color: #6b7280;
+        }
+
+        .summary-value {
+            margin-left: 8px;
+            font-weight: 500;
+        }
+
+        .by-text {
+            font-size: 12px;
+            color: #9333ea;
+            margin: 0 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                📊 Advanced Pivot Table Builder
+            </h1>
+            <p>Configure multiple dimensions and measures for complex data analysis</p>
+        </div>
+
+        <div class="controls">
+            <!-- Row Fields -->
+            <div class="control-group">
+                <div class="control-header">
+                    <label class="control-label">
+                        🔍 Row Fields
+                    </label>
+                    <button class="add-button" id="addRowField">+ Add Row</button>
+                </div>
+                <div class="field-container" id="rowFieldsContainer"></div>
+            </div>
+
+            <!-- Column Fields -->
+            <div class="control-group">
+                <div class="control-header">
+                    <label class="control-label">
+                        📋 Column Fields
+                    </label>
+                    <button class="add-button" id="addColField">+ Add Column</button>
+                </div>
+                <div class="field-container" id="colFieldsContainer"></div>
+            </div>
+
+            <!-- Measures -->
+            <div class="control-group">
+                <div class="control-header">
+                    <label class="control-label">
+                        📊 Measures
+                    </label>
+                    <button class="add-button" id="addMeasure">+ Add Measure</button>
+                </div>
+                <div class="field-container" id="measuresContainer"></div>
+            </div>
+
+            <!-- Stratify Field -->
+            <div class="control-group stratify-group">
+                <label class="stratify-label">Stratify By</label>
+                <select class="stratify-select" id="stratifyField">
+                    <option value="">None</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="pivot-table">
+            <div class="table-container">
+                <table id="pivotTable">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="summary">
+            <h3>Table Summary</h3>
+            <div class="summary-grid" id="summaryGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        // Sample sales data
+        const salesData = [
+            { region: 'North', category: 'Electronics', product: 'Laptop', quarter: 'Q1', sales: 15000, units: 50, cost: 12000 },
+            { region: 'North', category: 'Electronics', product: 'Phone', quarter: 'Q1', sales: 8000, units: 80, cost: 6000 },
+            { region: 'North', category: 'Clothing', product: 'Shirt', quarter: 'Q1', sales: 3000, units: 150, cost: 1500 },
+            { region: 'North', category: 'Electronics', product: 'Laptop', quarter: 'Q2', sales: 18000, units: 60, cost: 14400 },
+            { region: 'North', category: 'Electronics', product: 'Phone', quarter: 'Q2', sales: 9500, units: 95, cost: 7125 },
+            { region: 'North', category: 'Clothing', product: 'Pants', quarter: 'Q2', sales: 4500, units: 90, cost: 2700 },
+            { region: 'South', category: 'Electronics', product: 'Laptop', quarter: 'Q1', sales: 12000, units: 40, cost: 9600 },
+            { region: 'South', category: 'Electronics', product: 'Tablet', quarter: 'Q1', sales: 6000, units: 60, cost: 4200 },
+            { region: 'South', category: 'Clothing', product: 'Dress', quarter: 'Q1', sales: 5000, units: 100, cost: 2500 },
+            { region: 'South', category: 'Electronics', product: 'Laptop', quarter: 'Q2', sales: 14000, units: 45, cost: 11200 },
+            { region: 'South', category: 'Electronics', product: 'Phone', quarter: 'Q2', sales: 7500, units: 75, cost: 5625 },
+            { region: 'South', category: 'Clothing', product: 'Shoes', quarter: 'Q2', sales: 6000, units: 120, cost: 3600 },
+            { region: 'East', category: 'Electronics', product: 'Laptop', quarter: 'Q1', sales: 20000, units: 65, cost: 16000 },
+            { region: 'East', category: 'Electronics', product: 'Phone', quarter: 'Q1', sales: 10000, units: 100, cost: 7500 },
+            { region: 'East', category: 'Furniture', product: 'Chair', quarter: 'Q1', sales: 8000, units: 80, cost: 5600 },
+            { region: 'East', category: 'Electronics', product: 'Tablet', quarter: 'Q2', sales: 7000, units: 70, cost: 4900 },
+            { region: 'East', category: 'Furniture', product: 'Desk', quarter: 'Q2', sales: 12000, units: 40, cost: 8400 },
+            { region: 'West', category: 'Electronics', product: 'Phone', quarter: 'Q1', sales: 9000, units: 90, cost: 6750 },
+            { region: 'West', category: 'Furniture', product: 'Table', quarter: 'Q1', sales: 10000, units: 50, cost: 7000 },
+            { region: 'West', category: 'Electronics', product: 'Laptop', quarter: 'Q2', sales: 16000, units: 55, cost: 12800 },
+            { region: 'West', category: 'Furniture', product: 'Chair', quarter: 'Q2', sales: 9000, units: 90, cost: 6300 },
+        ];
+
+        // Application state
+        let state = {
+            rowFields: ['region'],
+            colFields: ['quarter'],
+            measures: [{ field: 'sales', aggregation: 'sum' }],
+            stratifyField: ''
+        };
+
+        // Get unique field names
+        const fields = Object.keys(salesData[0]);
+        const dimensionFields = fields.filter(f => !['sales', 'units', 'cost'].includes(f));
+        const measureFields = ['sales', 'units', 'cost'];
+        const aggregationOptions = ['sum', 'average', 'count', 'min', 'max'];
+
+        // All function definitions in proper order
+
+        function formatValue(value, measureField) {
+            if (typeof value === 'number') {
+                if (measureField === 'sales' || measureField === 'cost') {
+                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+                }
+                const measure = state.measures.find(m => m.field === measureField);
+                return measure?.aggregation === 'average' ? value.toFixed(2) : value.toLocaleString();
+            }
+            return value;
+        }
+
+        function generatePivotData() {
+            const createKey = (fields, row) => fields.map(f => row[f]).join('|');
+            
+            const grouped = {};
+            const rowValueSets = state.rowFields.map(() => new Set());
+            const colValueSets = state.colFields.map(() => new Set());
+            
+            salesData.forEach(row => {
+                const rowKey = createKey(state.rowFields, row);
+                const colKey = createKey(state.colFields, row);
+                const stratKey = state.stratifyField ? row[state.stratifyField] : null;
+                
+                state.rowFields.forEach((field, i) => rowValueSets[i].add(row[field]));
+                state.colFields.forEach((field, i) => colValueSets[i].add(row[field]));
+                
+                if (!grouped[rowKey]) grouped[rowKey] = {};
+                if (!grouped[rowKey][colKey]) grouped[rowKey][colKey] = {};
+                
+                if (state.stratifyField) {
+                    if (!grouped[rowKey][colKey][stratKey]) {
+                        grouped[rowKey][colKey][stratKey] = [];
+                    }
+                    grouped[rowKey][colKey][stratKey].push(row);
+                } else {
+                    if (!grouped[rowKey][colKey].values) {
+                        grouped[rowKey][colKey].values = [];
+                    }
+                    grouped[rowKey][colKey].values.push(row);
+                }
+            });
+
+            const aggregate = (values, measure) => {
+                if (!values || values.length === 0) return 0;
+                const nums = values.map(v => v[measure.field]);
+                switch (measure.aggregation) {
+                    case 'sum': return nums.reduce((a, b) => a + b, 0);
+                    case 'average': return nums.reduce((a, b) => a + b, 0) / nums.length;
+                    case 'count': return nums.length;
+                    case 'min': return Math.min(...nums);
+                    case 'max': return Math.max(...nums);
+                    default: return 0;
+                }
+            };
+
+            const generateCombinations = (valueSets) => {
+                if (valueSets.length === 0) return [[]];
+                if (valueSets.length === 1) return Array.from(valueSets[0]).map(v => [v]);
+                
+                const result = [];
+                const first = Array.from(valueSets[0]);
+                const restCombinations = generateCombinations(valueSets.slice(1));
+                
+                first.forEach(firstVal => {
+                    restCombinations.forEach(restComb => {
+                        result.push([firstVal, ...restComb]);
+                    });
+                });
+                
+                return result;
+            };
+
+            const rowCombinations = generateCombinations(rowValueSets);
+            const colCombinations = generateCombinations(colValueSets);
+
+            const result = {};
+            rowCombinations.forEach(rowComb => {
+                const rowKey = rowComb.join('|');
+                result[rowKey] = {};
+                colCombinations.forEach(colComb => {
+                    const colKey = colComb.join('|');
+                    if (state.stratifyField && grouped[rowKey] && grouped[rowKey][colKey]) {
+                        result[rowKey][colKey] = {};
+                        Object.keys(grouped[rowKey][colKey]).forEach(stratKey => {
+                            result[rowKey][colKey][stratKey] = {};
+                            state.measures.forEach(measure => {
+                                result[rowKey][colKey][stratKey][measure.field] = aggregate(grouped[rowKey][colKey][stratKey], measure);
+                            });
+                        });
+                    } else if (grouped[rowKey] && grouped[rowKey][colKey] && grouped[rowKey][colKey].values) {
+                        result[rowKey][colKey] = {};
+                        state.measures.forEach(measure => {
+                            result[rowKey][colKey][measure.field] = aggregate(grouped[rowKey][colKey].values, measure);
+                        });
+                    } else {
+                        result[rowKey][colKey] = {};
+                        state.measures.forEach(measure => {
+                            result[rowKey][colKey][measure.field] = state.stratifyField ? {} : 0;
+                        });
+                    }
+                });
+            });
+
+            return { 
+                data: result, 
+                rowCombinations, 
+                colCombinations
+            };
+        }
+
+        function renderPivotTable() {
+            const pivotData = generatePivotData();
+            const tableHead = document.getElementById('tableHead');
+            const tableBody = document.getElementById('tableBody');
+            
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+            
+            // Create header row
+            const headerRow = document.createElement('tr');
+            
+            // Add row field headers
+            state.rowFields.forEach(field => {
+                const th = document.createElement('th');
+                th.textContent = field;
+                th.className = 'row-header';
+                headerRow.appendChild(th);
+            });
+            
+            // Add column headers
+            pivotData.colCombinations.forEach(colComb => {
+                const th = document.createElement('th');
+                th.className = 'column-header';
+                
+                const headerContent = document.createElement('div');
+                headerContent.className = 'column-header-content';
+                
+                colComb.forEach((value, i) => {
+                    const headerItem = document.createElement('div');
+                    headerItem.className = 'column-header-item';
+                    headerItem.textContent = `${state.colFields[i]}: ${value}`;
+                    headerContent.appendChild(headerItem);
+                });
+                
+                th.appendChild(headerContent);
+                headerRow.appendChild(th);
+            });
+            
+            tableHead.appendChild(headerRow);
+            
+            // Create data rows
+            pivotData.rowCombinations.forEach(rowComb => {
+                const row = document.createElement('tr');
+                
+                // Add row headers
+                rowComb.forEach(value => {
+                    const td = document.createElement('td');
+                    td.className = 'row-header';
+                    td.textContent = value;
+                    row.appendChild(td);
+                });
+                
+                // Add data cells
+                pivotData.colCombinations.forEach(colComb => {
+                    const rowKey = rowComb.join('|');
+                    const colKey = colComb.join('|');
+                    const cellData = pivotData.data[rowKey][colKey];
+                    
+                    const td = document.createElement('td');
+                    td.className = 'data-cell';
+                    
+                    if (state.stratifyField) {
+                        const stratifyContainer = document.createElement('div');
+                        stratifyContainer.className = 'measure-line';
+                        
+                        Object.entries(cellData).forEach(([stratKey, stratValues]) => {
+                            const stratifyItem = document.createElement('div');
+                            stratifyItem.className = 'stratify-item';
+                            
+                            const stratifyHeader = document.createElement('div');
+                            stratifyHeader.className = 'stratify-header';
+                            stratifyHeader.textContent = stratKey;
+                            stratifyItem.appendChild(stratifyHeader);
+                            
+                            const measureContainer = document.createElement('div');
+                            measureContainer.className = 'measure-line';
+                            
+                            state.measures.forEach(measure => {
+                                const measureItem = document.createElement('div');
+                                measureItem.className = 'measure-item';
+                                
+                                const label = document.createElement('span');
+                                label.className = 'measure-label';
+                                label.textContent = `${measure.field}:`;
+                                
+                                const value = document.createElement('span');
+                                value.className = 'measure-value';
+                                value.textContent = formatValue(stratValues[measure.field], measure.field);
+                                
+                                measureItem.appendChild(label);
+                                measureItem.appendChild(value);
+                                measureContainer.appendChild(measureItem);
+                            });
+                            
+                            stratifyItem.appendChild(measureContainer);
+                            stratifyContainer.appendChild(stratifyItem);
+                        });
+                        
+                        td.appendChild(stratifyContainer);
+                    } else {
+                        const measureContainer = document.createElement('div');
+                        measureContainer.className = 'measure-line';
+                        
+                        state.measures.forEach(measure => {
+                            const measureItem = document.createElement('div');
+                            measureItem.className = 'measure-item';
+                            
+                            const label = document.createElement('span');
+                            label.className = 'measure-label';
+                            label.textContent = `${measure.field}:`;
+                            
+                            const value = document.createElement('span');
+                            value.className = 'measure-value';
+                            value.textContent = formatValue(cellData[measure.field], measure.field);
+                            
+                            measureItem.appendChild(label);
+                            measureItem.appendChild(value);
+                            measureContainer.appendChild(measureItem);
+                        });
+                        
+                        td.appendChild(measureContainer);
+                    }
+                    
+                    row.appendChild(td);
+                });
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        function renderSummary() {
+            const summaryGrid = document.getElementById('summaryGrid');
+            summaryGrid.innerHTML = '';
+            
+            const summaryItems = [
+                { label: 'Row Dimensions:', value: state.rowFields.length },
+                { label: 'Column Dimensions:', value: state.colFields.length },
+                { label: 'Measures:', value: state.measures.length },
+                { label: 'Stratified:', value: state.stratifyField || 'No' }
+            ];
+            
+            summaryItems.forEach(item => {
+                const summaryItem = document.createElement('div');
+                summaryItem.className = 'summary-item';
+                
+                const label = document.createElement('span');
+                label.className = 'summary-label';
+                label.textContent = item.label;
+                
+                const value = document.createElement('span');
+                value.className = 'summary-value';
+                value.textContent = item.value;
+                
+                summaryItem.appendChild(label);
+                summaryItem.appendChild(value);
+                summaryGrid.appendChild(summaryItem);
+            });
+        }
+
+        function updateStratifyOptions() {
+            const stratifySelect = document.getElementById('stratifyField');
+            const availableFields = dimensionFields.filter(f => 
+                !state.rowFields.includes(f) && !state.colFields.includes(f)
+            );
+            
+            stratifySelect.innerHTML = '<option value="">None</option>';
+            availableFields.forEach(field => {
+                const option = document.createElement('option');
+                option.value = field;
+                option.textContent = field;
+                if (field === state.stratifyField) option.selected = true;
+                stratifySelect.appendChild(option);
+            });
+
+            if (state.stratifyField && !availableFields.includes(state.stratifyField)) {
+                state.stratifyField = '';
+            }
+        }
+
+        function renderRowFields() {
+            const container = document.getElementById('rowFieldsContainer');
+            container.innerHTML = '';
+            
+            state.rowFields.forEach((field, index) => {
+                const fieldItem = document.createElement('div');
+                fieldItem.className = 'field-item row';
+                
+                fieldItem.innerHTML = `
+                    <span class="field-index">${index + 1}</span>
+                    <select class="field-select">
+                        ${dimensionFields.map(f => 
+                            `<option value="${f}" ${f === field ? 'selected' : ''}>${f}</option>`
+                        ).join('')}
+                    </select>
+                    ${state.rowFields.length > 1 ? `<button class="remove-button">✕</button>` : ''}
+                `;
+                
+                const select = fieldItem.querySelector('.field-select');
+                select.addEventListener('change', (e) => updateRowField(index, e.target.value));
+                
+                const removeBtn = fieldItem.querySelector('.remove-button');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', () => removeRowField(index));
+                }
+                
+                container.appendChild(fieldItem);
+            });
+        }
+
+        function renderColFields() {
+            const container = document.getElementById('colFieldsContainer');
+            container.innerHTML = '';
+            
+            state.colFields.forEach((field, index) => {
+                const fieldItem = document.createElement('div');
+                fieldItem.className = 'field-item col';
+                
+                fieldItem.innerHTML = `
+                    <span class="field-index">${index + 1}</span>
+                    <select class="field-select">
+                        ${dimensionFields.map(f => 
+                            `<option value="${f}" ${f === field ? 'selected' : ''}>${f}</option>`
+                        ).join('')}
+                    </select>
+                    ${state.colFields.length > 1 ? `<button class="remove-button">✕</button>` : ''}
+                `;
+                
+                const select = fieldItem.querySelector('.field-select');
+                select.addEventListener('change', (e) => updateColField(index, e.target.value));
+                
+                const removeBtn = fieldItem.querySelector('.remove-button');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', () => removeColField(index));
+                }
+                
+                container.appendChild(fieldItem);
+            });
+        }
+
+        function renderMeasures() {
+            const container = document.getElementById('measuresContainer');
+            container.innerHTML = '';
+            
+            state.measures.forEach((measure, index) => {
+                const fieldItem = document.createElement('div');
+                fieldItem.className = 'field-item measure';
+                
+                fieldItem.innerHTML = `
+                    <select class="field-select field-select-field">
+                        ${measureFields.map(f => 
+                            `<option value="${f}" ${f === measure.field ? 'selected' : ''}>${f}</option>`
+                        ).join('')}
+                    </select>
+                    <span class="by-text">by</span>
+                    <select class="field-select field-select-agg">
+                        ${aggregationOptions.map(agg => 
+                            `<option value="${agg}" ${agg === measure.aggregation ? 'selected' : ''}>${agg}</option>`
+                        ).join('')}
+                    </select>
+                    ${state.measures.length > 1 ? `<button class="remove-button">✕</button>` : ''}
+                `;
+                
+                const fieldSelect = fieldItem.querySelector('.field-select-field');
+                const aggSelect = fieldItem.querySelector('.field-select-agg');
+                
+                fieldSelect.addEventListener('change', (e) => updateMeasure(index, 'field', e.target.value));
+                aggSelect.addEventListener('change', (e) => updateMeasure(index, 'aggregation', e.target.value));
+                
+                const removeBtn = fieldItem.querySelector('.remove-button');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', () => removeMeasure(index));
+                }
+                
+                container.appendChild(fieldItem);
+            });
+        }
+
+        function updateAddButtons() {
+            const addRowBtn = document.getElementById('addRowField');
+            const addColBtn = document.getElementById('addColField');
+            const addMeasureBtn = document.getElementById('addMeasure');
+            
+            addRowBtn.disabled = state.rowFields.length >= dimensionFields.length;
+            addColBtn.disabled = state.colFields.length >= dimensionFields.length;
+            addMeasureBtn.disabled = state.measures.length >= measureFields.length;
+        }
+
+        function renderControls() {
+            renderRowFields();
+            renderColFields();
+            renderMeasures();
+            updateAddButtons();
+        }
+
+        function updateRowField(index, value) {
+            state.rowFields[index] = value;
+            updateStratifyOptions();
+            renderControls();
+            renderPivotTable();
+            renderSummary();
+        }
+
+        function updateColField(index, value) {
+            state.colFields[index] = value;
+            updateStratifyOptions();
+            renderControls();
+            renderPivotTable();
+            renderSummary();
+        }
+
+        function updateMeasure(index, field, value) {
+            state.measures[index][field] = value;
+            renderControls();
+            renderPivotTable();
+            renderSummary();
+        }
+
+        function removeRowField(index) {
+            if (state.rowFields.length > 1) {
+                state.rowFields.splice(index, 1);
+                updateStratifyOptions();
+                renderControls();
+                renderPivotTable();
+                renderSummary();
+            }
+        }
+
+        function removeColField(index) {
+            if (state.colFields.length > 1) {
+                state.colFields.splice(index, 1);
+                updateStratifyOptions();
+                renderControls();
+                renderPivotTable();
+                renderSummary();
+            }
+        }
+
+        function removeMeasure(index) {
+            if (state.measures.length > 1) {
+                state.measures.splice(index, 1);
+                renderControls();
+                renderPivotTable();
+                renderSummary();
+            }
+        }
+
+        function addRowField() {
+            const availableFields = dimensionFields.filter(f => !state.rowFields.includes(f));
+            if (availableFields.length > 0) {
+                state.rowFields.push(availableFields[0]);
+                updateStratifyOptions();
+                renderControls();
+                renderPivotTable();
+                renderSummary();
+            }
+        }
+
+        function addColField() {
+            const availableFields = dimensionFields.filter(f => !state.colFields.includes(f));
+            if (availableFields.length > 0) {
+                state.colFields.push(availableFields[0]);
+                updateStratifyOptions();
+                renderControls();
+                renderPivotTable();
+                renderSummary();
+            }
+        }
+
+        function addMeasure() {
+            const availableFields = measureFields.filter(f => !state.measures.map(m => m.field).includes(f));
+            if (availableFields.length > 0) {
+                state.measures.push({ field: availableFields[0], aggregation: 'sum' });
+                renderControls();
+                renderPivotTable();
+                renderSummary();
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('addRowField').addEventListener('click', addRowField);
+            document.getElementById('addColField').addEventListener('click', addColField);
+            document.getElementById('addMeasure').addEventListener('click', addMeasure);
+            document.getElementById('stratifyField').addEventListener('change', (e) => {
+                state.stratifyField = e.target.value;
+                renderPivotTable();
+                renderSummary();
+            });
+        }
+
+        function init() {
+            console.log('Initializing pivot table...');
+            
+            setupEventListeners();
+            updateStratifyOptions();
+            renderControls();
+            renderPivotTable();
+            renderSummary();
+            
+            console.log('Pivot table initialized successfully');
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
